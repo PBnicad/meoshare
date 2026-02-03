@@ -1,4 +1,4 @@
-# MeoShare
+# MeoShare (喵喵快传)
 
 临时文件分享服务，基于 Cloudflare Workers + R2 + D1 构建。
 
