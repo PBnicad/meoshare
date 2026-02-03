@@ -119,8 +119,17 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8 animate-fade-in">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} MeoShare. 基于 Cloudflare Workers 构建</p>
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground space-y-2">
+          <p>© {new Date().getFullYear()} MeoShare (喵喵快传). 基于 Cloudflare Workers 构建</p>
+          <a
+            href="https://github.com/PBnicad/meoshare"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <Github className="h-4 w-4" />
+            GitHub
+          </a>
         </div>
       </footer>
     </div>
