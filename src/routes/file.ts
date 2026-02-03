@@ -23,6 +23,14 @@ fileRoutes.post('/upload', async (c) => {
       return c.json({ error: 'No file provided' }, 400);
     }
 
+    // 检查文件大小 (Cloudflare Workers 免费套餐限制 100MB)
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_FILE_SIZE) {
+      return c.json({
+        error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`
+      }, 400);
+    }
+
     if (expiresIn < 1 || expiresIn > 30) {
       return c.json({ error: 'Expiration time must be between 1 and 30 days' }, 400);
     }

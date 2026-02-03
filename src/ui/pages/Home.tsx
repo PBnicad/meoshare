@@ -1,9 +1,17 @@
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
-import { Upload, LogOut } from 'lucide-react';
+import { Upload, LogOut, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { api, type User } from '../lib/api';
 import Landing from './Landing';
 
@@ -22,6 +30,8 @@ export default function Home() {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const [expiresIn, setExpiresIn] = useState('7');
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 检查用户登录状态
@@ -73,10 +83,19 @@ export default function Home() {
 
   const uploadFile = async (file: File, upload: FileUpload) => {
     try {
-      const result = await api.uploadFile(file, parseInt(expiresIn));
+      const result = await api.uploadFileWithProgress(file, parseInt(expiresIn), (progress) => {
+        // 更新上传进度
+        setUploads((prev: FileUpload[]) =>
+          prev.map((u: FileUpload) =>
+            u.file === file
+              ? { ...u, progress }
+              : u
+          )
+        );
+      });
 
-      setUploads((prev) =>
-        prev.map((u) =>
+      setUploads((prev: FileUpload[]) =>
+        prev.map((u: FileUpload) =>
           u.file === file
             ? { ...u, progress: 100, status: 'success', fileId: result.fileId, downloadUrl: result.downloadUrl }
             : u
@@ -86,8 +105,8 @@ export default function Home() {
       // Refresh file list
       loadFiles();
     } catch (error) {
-      setUploads((prev) =>
-        prev.map((u) =>
+      setUploads((prev: FileUpload[]) =>
+        prev.map((u: FileUpload) =>
           u.file === file ? { ...u, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' } : u
         )
       );
@@ -97,9 +116,27 @@ export default function Home() {
   const deleteFile = async (fileId: string) => {
     try {
       await api.deleteFile(fileId);
-      loadFiles();
+      // 立即从列表中移除文件（乐观更新）
+      setUserFiles((prev: any[]) => prev.filter((f: any) => f.id !== fileId));
+      // 然后重新加载以确保数据同步
+      await loadFiles();
     } catch (error) {
       console.error('Failed to delete file:', error);
+      // 如果删除失败，重新加载列表以恢复状态
+      await loadFiles();
+    }
+  };
+
+  const confirmDelete = (fileId: string) => {
+    setFileToDelete(fileId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (fileToDelete) {
+      await deleteFile(fileToDelete);
+      setDeleteDialogOpen(false);
+      setFileToDelete(null);
     }
   };
 
@@ -272,7 +309,7 @@ export default function Home() {
                         >
                           复制链接
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={() => deleteFile(file.id)}>
+                        <Button variant="destructive" size="sm" onClick={() => confirmDelete(file.id)}>
                           删除
                         </Button>
                       </div>
@@ -284,6 +321,29 @@ export default function Home() {
           </Card>
         )}
       </main>
+
+      {/* 删除确认对话框 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              确认删除文件
+            </DialogTitle>
+            <DialogDescription>
+              你确定要删除这个文件吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
