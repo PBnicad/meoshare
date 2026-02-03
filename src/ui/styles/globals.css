@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 基于设计图的颜色系统 */
+    --background: 0 0% 7%; /* #121212 */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+
+    --card: 0 0% 12%; /* #1E1E1E */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 217 91% 60%; /* #3B82F6 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 69%; /* #B0B0B0 */
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%; /* #2D2D2D */
+    --input: 0 0% 18%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.5rem; /* 8px */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+  code, pre {
+    @apply font-code;
+  }
+}
+
+/* 动画定义 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-emerald {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-emerald {
+  animation: pulse-emerald 4s ease-in-out infinite;
+}
+
+/* 延迟动画类 */
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}

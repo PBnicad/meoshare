@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__zai-mcp-server__ui_to_artifact",
+      "Bash(git init:*)",
+      "Bash(bunx better-auth:*)",
+      "Bash(bun run lint)",
+      "Bash(wrangler d1 execute:*)",
+      "Bash(bun run build:*)",
+      "Bash(npx tsx:*)",
+      "Bash(bun add:*)",
+      "Bash(bunx husky init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

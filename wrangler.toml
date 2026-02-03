@@ -1,0 +1,31 @@
+name = "meoshare"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 静态资源配置 (Vite 构建输出)
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+# 本地开发配置
+[env.dev]
+vars = { APP_URL = "http://localhost:8788" }
+
+[vars]
+APP_URL = "https://your-worker.workers.dev"
+
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "meoshare-db"
+database_id = "your-database-id"  # 需要替换为实际的 D1 database ID
+
+# R2 存储桶
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "meoshare-files"
+
+# Cron Trigger - 每小时清理过期文件
+[triggers]
+crons = ["0 * * * * *"]
