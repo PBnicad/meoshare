@@ -2,6 +2,10 @@
 
 临时文件分享服务，基于 Cloudflare Workers + R2 + D1 构建。
 
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?href=https://github.com/PBnicad/meoshare)
+
+> 💡 **提示**: 部署前需要先配置 Cloudflare 资源（D1 数据库、R2 存储桶、GitHub OAuth），详见 [Cloudflare 部署指南](./CLOUDFLARE_DEPLOY.md) | [快速开始](#快速开始) ↓
+
 ## 功能特性
 
 - 🔐 **GitHub OAuth 登录** - 使用 better-auth 实现
@@ -11,6 +15,35 @@
 - 🗑️ **文件删除** - 可随时删除自己的文件
 - 🔄 **自动清理** - Cron 定时清理过期文件
 - 🎨 **现代 UI** - 基于 shadcn/ui + Tailwind CSS
+
+## 快速部署
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/PBnicad/meoshare.git
+cd meoshare
+
+# 2. 安装依赖
+bun install
+
+# 3. 创建 Cloudflare 资源
+wrangler d1 create meoshare-db
+wrangler r2 bucket create meoshare-files
+
+# 4. 配置环境变量
+# 更新 wrangler.toml 中的 database_id
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
+
+# 5. 初始化数据库
+wrangler d1 execute meoshare-db --file=./src/db/migrations/0001_init.sql
+
+# 6. 构建并部署
+bun run build
+bun run deploy
+```
+
+📖 **详细部署指南**: [CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md)
 
 ## 技术栈
 
