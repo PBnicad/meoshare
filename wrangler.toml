@@ -29,3 +29,9 @@ bucket_name = "meoshare-files"
 # Cron Trigger - 每小时清理过期文件
 [triggers]
 crons = ["0 * * * *"]
+
+# Observability 配置
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true
