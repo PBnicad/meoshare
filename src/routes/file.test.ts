@@ -73,6 +73,30 @@ describe('file routes', () => {
     await expect(res.json()).resolves.toEqual({ error: 'Expiration time must be between 1 and 30 days' });
   });
 
+  it('uses default expiration when expiresIn is not a number', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
+    vi.mocked(fileService.createFileRecord).mockResolvedValue('f1');
+
+    const body = new FormData();
+    body.set('file', new File(['a'], 'a.txt', { type: 'text/plain' }));
+    body.set('expiresIn', 'invalid');
+
+    const res = await app.request('/api/file/upload', { method: 'POST', body }, env);
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects upload when file is too large', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
+    const largeFile = new File([new ArrayBuffer(101 * 1024 * 1024)], 'large.txt', { type: 'text/plain' });
+    const body = new FormData();
+    body.set('file', largeFile);
+    body.set('expiresIn', '7');
+
+    const res = await app.request('/api/file/upload', { method: 'POST', body }, env);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: 'File too large. Maximum size is 100MB' });
+  });
+
   it('uploads file successfully', async () => {
     vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
     vi.mocked(fileService.createFileRecord).mockResolvedValue('f1');
@@ -97,6 +121,21 @@ describe('file routes', () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ success: true });
     expect(deleteFileFromR2).toHaveBeenCalledWith(env.R2, 'k1');
+  });
+
+  it('returns 401 when deleting without session', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue(null);
+
+    const res = await app.request('/api/file/f1', { method: 'DELETE' }, env);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when deleting non-existent file', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
+    vi.mocked(fileService.getFileById).mockResolvedValue(null);
+
+    const res = await app.request('/api/file/f1', { method: 'DELETE' }, env);
+    expect(res.status).toBe(404);
   });
 
   it('returns 403 when deleting others file', async () => {
@@ -128,6 +167,13 @@ describe('file routes', () => {
     expect(json.uploader.name).toBe('u1');
   });
 
+  it('returns 404 for non-existent file info', async () => {
+    vi.mocked(fileService.getFileById).mockResolvedValue(null);
+
+    const res = await app.request('/api/file/f1', {}, env);
+    expect(res.status).toBe(404);
+  });
+
   it('returns 410 for expired file info', async () => {
     vi.mocked(fileService.getFileById).mockResolvedValue({ id: 'f1' } as any);
     vi.mocked(fileService.isFileExpired).mockResolvedValue(true);
@@ -150,5 +196,90 @@ describe('file routes', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Disposition')).toContain('a.txt');
     expect(fileService.incrementDownloadCount).toHaveBeenCalledWith(env.DB, 'f1');
+  });
+
+  it('downloads file with null content type', async () => {
+    vi.mocked(fileService.getFileById).mockResolvedValue({
+      id: 'f1',
+      filename: 'a.txt',
+      content_type: null,
+      size: 12,
+      r2_key: 'k1',
+    } as any);
+    vi.mocked(fileService.isFileExpired).mockResolvedValue(false);
+
+    const res = await app.request('/api/file/f1/download', {}, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/octet-stream');
+  });
+
+  it('returns 404 when downloading non-existent file', async () => {
+    vi.mocked(fileService.getFileById).mockResolvedValue(null);
+
+    const res = await app.request('/api/file/f1/download', {}, env);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 410 when downloading expired file', async () => {
+    vi.mocked(fileService.getFileById).mockResolvedValue({
+      id: 'f1',
+      filename: 'a.txt',
+      content_type: 'text/plain',
+      size: 12,
+      r2_key: 'k1',
+    } as any);
+    vi.mocked(fileService.isFileExpired).mockResolvedValue(true);
+
+    const res = await app.request('/api/file/f1/download', {}, env);
+    expect(res.status).toBe(410);
+  });
+
+  it('returns 404 when file not found in R2 storage', async () => {
+    vi.mocked(fileService.getFileById).mockResolvedValue({
+      id: 'f1',
+      filename: 'a.txt',
+      content_type: 'text/plain',
+      size: 12,
+      r2_key: 'k1',
+    } as any);
+    vi.mocked(fileService.isFileExpired).mockResolvedValue(false);
+    env.R2.get.mockResolvedValueOnce(null);
+
+    const res = await app.request('/api/file/f1/download', {}, env);
+    expect(res.status).toBe(404);
+  });
+
+  it('handles errors when downloading file', async () => {
+    vi.mocked(fileService.getFileById).mockRejectedValue(new Error('DB error'));
+
+    const res = await app.request('/api/file/f1/download', {}, env);
+    expect(res.status).toBe(500);
+  });
+
+  it('handles errors when getting file info', async () => {
+    vi.mocked(fileService.getFileById).mockRejectedValue(new Error('DB error'));
+
+    const res = await app.request('/api/file/f1', {}, env);
+    expect(res.status).toBe(500);
+  });
+
+  it('handles errors when deleting file', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
+    vi.mocked(fileService.getFileById).mockRejectedValue(new Error('DB error'));
+
+    const res = await app.request('/api/file/f1', { method: 'DELETE' }, env);
+    expect(res.status).toBe(500);
+  });
+
+  it('handles errors when uploading file', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue({ user: { id: 'u1' }, sessionId: 's1' } as any);
+    vi.mocked(fileService.createFileRecord).mockRejectedValue(new Error('DB error'));
+
+    const body = new FormData();
+    body.set('file', new File(['hello'], 'a.txt', { type: 'text/plain' }));
+    body.set('expiresIn', '7');
+
+    const res = await app.request('/api/file/upload', { method: 'POST', body }, env);
+    expect(res.status).toBe(500);
   });
 });
