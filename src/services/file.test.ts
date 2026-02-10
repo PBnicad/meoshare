@@ -148,4 +148,25 @@ describe('file service', () => {
     expect(r2.delete).toHaveBeenCalledTimes(2);
     expect(deleteStmt.run).toHaveBeenCalledTimes(1);
   });
+
+  it('cleans up expired files when results is undefined', async () => {
+    const selectStmt = {
+      bind: vi.fn(),
+      all: vi.fn().mockResolvedValue({}), // no results property
+      run: vi.fn(),
+      first: vi.fn(),
+    };
+    selectStmt.bind.mockReturnValue(selectStmt);
+
+    db.prepare = vi.fn().mockReturnValue(selectStmt);
+
+    const r2 = {
+      delete: vi.fn(),
+    };
+
+    const result = await cleanupExpiredFiles(db, r2 as any);
+
+    expect(result).toBe(0);
+    expect(r2.delete).not.toHaveBeenCalled();
+  });
 });

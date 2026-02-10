@@ -51,4 +51,10 @@ describe('user routes', () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ files: [{ id: 'f1' }] });
   });
+
+  it('returns 401 for unauthenticated /api/user/files', async () => {
+    vi.mocked(getSessionFromCookie).mockResolvedValue(null);
+    const res = await app.request('/api/user/files', {}, env);
+    expect(res.status).toBe(401);
+  });
 });

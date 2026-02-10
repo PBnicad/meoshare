@@ -27,6 +27,12 @@ describe('session middleware', () => {
     await expect(getSessionFromCookie(c, db as any)).resolves.toBeNull();
   });
 
+  it('handles cookie with empty value', async () => {
+    const c = createContext('foo=');
+    const db = { prepare: vi.fn() };
+    await expect(getSessionFromCookie(c, db as any)).resolves.toBeNull();
+  });
+
   it('returns null when session does not exist', async () => {
     const stmt = {
       bind: vi.fn(),

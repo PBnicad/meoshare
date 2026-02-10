@@ -19,6 +19,24 @@ describe('r2 service', () => {
     expect(key).toContain('-hello.txt');
   });
 
+  it('generates r2 key with file without extension', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(12345);
+    vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+
+    const key = generateR2Key('u1', 'hello');
+    expect(key).toContain('u1/12345-');
+    expect(key).toContain('-hello.');
+  });
+
+  it('generates r2 key with filename ending with dot', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(12345);
+    vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+
+    const key = generateR2Key('u1', 'hello.');
+    expect(key).toContain('u1/12345-');
+    expect(key).toContain('-hello.');
+  });
+
   it('uploads file to r2', async () => {
     const bucket = { put: vi.fn().mockResolvedValue(undefined) };
     await uploadFileToR2(bucket as any, 'k1', new Uint8Array([1, 2]), 'text/plain');
