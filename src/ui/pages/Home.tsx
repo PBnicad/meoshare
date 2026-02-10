@@ -1,5 +1,5 @@
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
-import { Upload, LogOut, AlertTriangle } from 'lucide-react';
+import { Upload, LogOut, AlertTriangle, QrCode } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
+import { QRCodeSVG } from 'qrcode.react';
+import { useToast } from '../components/ui/use-toast';
 import { api, type User } from '../lib/api';
 import Landing from './Landing';
 
@@ -25,6 +27,7 @@ interface FileUpload {
 }
 
 export default function Home() {
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [userFiles, setUserFiles] = useState<any[]>([]);
   const [uploads, setUploads] = useState<FileUpload[]>([]);
@@ -32,6 +35,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeFileName, setQrCodeFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 检查用户登录状态
@@ -42,7 +48,7 @@ export default function Home() {
         setUser(result.user);
         // 如果已登录，加载文件列表
         await loadFiles();
-      } catch (_error) {
+      } catch {
         // 未登录或会话过期
         setUser(null);
       } finally {
@@ -81,7 +87,7 @@ export default function Home() {
     }
   };
 
-  const uploadFile = async (file: File, upload: FileUpload) => {
+  const uploadFile = async (file: File, _upload: FileUpload) => {
     try {
       const result = await api.uploadFileWithProgress(file, parseInt(expiresIn), (progress) => {
         // 更新上传进度
@@ -140,8 +146,29 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(window.location.origin + url);
+  const copyToClipboard = async (url: string) => {
+    const fullUrl = window.location.origin + url;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      toast({
+        title: "复制成功",
+        description: "链接已复制到剪贴板",
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "复制失败",
+        description: "无法复制到剪贴板",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const showQrCode = (fileId: string, fileName: string) => {
+    const fullUrl = window.location.origin + `/f/${fileId}`;
+    setQrCodeUrl(fullUrl);
+    setQrCodeFileName(fileName);
+    setQrCodeDialogOpen(true);
   };
 
   const handleLogout = async () => {
@@ -268,6 +295,13 @@ export default function Home() {
                         >
                           复制链接
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => showQrCode(upload.fileId!, upload.file.name)}
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
                       </div>
                     )}
                     {upload.status === 'error' && (
@@ -309,6 +343,13 @@ export default function Home() {
                         >
                           复制链接
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => showQrCode(file.id, file.filename)}
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
                         <Button variant="destructive" size="sm" onClick={() => confirmDelete(file.id)}>
                           删除
                         </Button>
@@ -340,6 +381,36 @@ export default function Home() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm}>
               确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 二维码对话框 */}
+      <Dialog open={qrCodeDialogOpen} onOpenChange={setQrCodeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>文件二维码</DialogTitle>
+            <DialogDescription>
+              扫描二维码即可下载文件：{qrCodeFileName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-6">
+            <div className="bg-white p-4 rounded-lg">
+              <QRCodeSVG
+                value={qrCodeUrl}
+                size={200}
+                level={"M"}
+                includeMargin={true}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-center text-sm text-muted-foreground">
+            {qrCodeUrl}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setQrCodeDialogOpen(false)}>
+              关闭
             </Button>
           </DialogFooter>
         </DialogContent>
