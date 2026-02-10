@@ -1,2 +1,2 @@
 bun run lint
-bun run test -- --run
+bunx vitest run
