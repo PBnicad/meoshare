@@ -33,5 +33,5 @@ crons = ["0 * * * *"]
 # Observability 配置
 [observability]
 [observability.logs]
-enabled = false
+enabled = true
 invocation_logs = true
